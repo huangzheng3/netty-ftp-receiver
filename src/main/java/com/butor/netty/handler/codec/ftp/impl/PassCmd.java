@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 codingtony (t.bussieres@gmail.com)
+ * Copyright (C) 2018 huangzheng3 (1044859452@qq.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,34 +15,28 @@
  */
 package com.butor.netty.handler.codec.ftp.impl;
 
-import com.butor.netty.handler.codec.ftp.user.UserManager;
-import io.netty.channel.ChannelHandlerContext;
-
 import com.butor.netty.handler.codec.ftp.cmd.AbstractFTPCommand;
 import com.butor.netty.handler.codec.ftp.cmd.FTPAttrKeys;
 import com.butor.netty.handler.codec.ftp.cmd.LogonCommand;
+import com.butor.netty.handler.codec.ftp.user.UserManager;
+import io.netty.channel.ChannelHandlerContext;
 
-public class UserCmd extends AbstractFTPCommand  implements LogonCommand {
+public class PassCmd extends AbstractFTPCommand  implements LogonCommand {
 	private UserManager userManager;
 
-	public UserCmd(UserManager userManager) {
-		super("USER");
+	public PassCmd(UserManager userManager) {
+		super("PASS");
 		this.userManager=userManager;
 	}
 	
 	@Override
 	public void execute(ChannelHandlerContext ctx, String args) {
-		if(userManager.isNoAuth())
+		if(userManager.isNoAuth() || userManager.authPassword(args))
 		{
 			send("230 USER LOGGED IN", ctx, args);
 			ctx.attr(FTPAttrKeys.LOGGED_IN).set(true);
 			return;
 		}
-		if(userManager.authUserName(args))
-		{
-			send("311 INPUT PASSWORD", ctx, args);
-			return;
-		}
-		send("500 username is wrong", ctx, args);
+		send("500 password is wrong", ctx, args);
 	}
 }

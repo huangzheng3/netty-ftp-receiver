@@ -16,6 +16,9 @@
 package com.alexkasko.netty.ftp;
 
 import static org.junit.Assert.*;
+
+import com.butor.netty.handler.codec.ftp.user.User;
+import com.butor.netty.handler.codec.ftp.user.UserManager;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -40,6 +43,67 @@ import com.butor.netty.handler.codec.ftp.cmd.DefaultCommandExecutionTemplate;
  * Date: 12/28/12
  */
 public class FtpServerTest {
+
+    @Test
+    public void test_user_success() throws IOException, InterruptedException
+    {
+        UserManager userManager=new UserManager();
+        userManager.addUser(new User("admin","admin"));
+        final DefaultCommandExecutionTemplate defaultCommandExecutionTemplate = new DefaultCommandExecutionTemplate(new ConsoleReceiver(),userManager);
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        ServerBootstrap b = new ServerBootstrap();
+        b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline pipe = ch.pipeline();
+                        pipe.addLast("decoder", new CrlfStringDecoder());
+                        pipe.addLast("handler", new FtpServerHandler(defaultCommandExecutionTemplate));
+                    }
+
+                });
+        b.localAddress(2121).bind();
+        FTPClient client = new FTPClient();
+//        https://issues.apache.org/jira/browse/NET-493
+
+        client.setBufferSize(0);
+        client.connect("127.0.0.1", 2121);
+        assertEquals(311,client.user("admin"));
+        assertEquals(230,client.pass("admin"));
+    }
+
+    @Test
+    public void test_user_fail() throws IOException, InterruptedException
+    {
+        UserManager userManager=new UserManager();
+        userManager.addUser(new User("admin","admin"));
+        final DefaultCommandExecutionTemplate defaultCommandExecutionTemplate = new DefaultCommandExecutionTemplate(new ConsoleReceiver(),userManager);
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        ServerBootstrap b = new ServerBootstrap();
+        b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline pipe = ch.pipeline();
+                        pipe.addLast("decoder", new CrlfStringDecoder());
+                        pipe.addLast("handler", new FtpServerHandler(defaultCommandExecutionTemplate));
+                    }
+
+                });
+        b.localAddress(2121).bind();
+        FTPClient client = new FTPClient();
+//        https://issues.apache.org/jira/browse/NET-493
+
+        client.setBufferSize(0);
+        client.connect("127.0.0.1", 2121);
+        assertEquals(500,client.user("admin1"));
+        assertEquals(500,client.pass("admin"));
+    }
+
 
     @Test
     public void test() throws IOException, InterruptedException {

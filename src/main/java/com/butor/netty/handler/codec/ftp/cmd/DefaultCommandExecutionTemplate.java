@@ -22,35 +22,23 @@ import java.util.Map;
 import java.util.Set;
 
 import com.butor.netty.handler.codec.ftp.DataReceiver;
-import com.butor.netty.handler.codec.ftp.impl.CwdCmd;
-import com.butor.netty.handler.codec.ftp.impl.DeleCmd;
-import com.butor.netty.handler.codec.ftp.impl.ListCmd;
-import com.butor.netty.handler.codec.ftp.impl.MkdCmd;
-import com.butor.netty.handler.codec.ftp.impl.NoopCmd;
-import com.butor.netty.handler.codec.ftp.impl.PasvCmd;
-import com.butor.netty.handler.codec.ftp.impl.PortCmd;
-import com.butor.netty.handler.codec.ftp.impl.PwdCmd;
-import com.butor.netty.handler.codec.ftp.impl.QuitCmd;
-import com.butor.netty.handler.codec.ftp.impl.RmdCmd;
-import com.butor.netty.handler.codec.ftp.impl.RnfrCmd;
-import com.butor.netty.handler.codec.ftp.impl.RntoCmd;
-import com.butor.netty.handler.codec.ftp.impl.StorCmd;
-import com.butor.netty.handler.codec.ftp.impl.SystCmd;
-import com.butor.netty.handler.codec.ftp.impl.TypeCmd;
-import com.butor.netty.handler.codec.ftp.impl.UserCmd;
+import com.butor.netty.handler.codec.ftp.impl.*;
+import com.butor.netty.handler.codec.ftp.user.UserManager;
 
 public class DefaultCommandExecutionTemplate extends CommandExecutionTemplate {
 	
 	private final  Map<String, FTPCommand> SUPPORTED_COMMAND_SET ;
-	final ActivePassiveSocketManager activePassiveSocketManager;
-	final DataReceiver dataReceiver;
-	
+	private final ActivePassiveSocketManager activePassiveSocketManager;
+	private final DataReceiver dataReceiver;
+
 
 
 	public DefaultCommandExecutionTemplate(DataReceiver dataReceiver) {
 		this(new ActivePassiveSocketManager(new byte[] { 127, 0, 0, 1 }, 2121, 4242, 10),dataReceiver);
 	}
-
+	public DefaultCommandExecutionTemplate(DataReceiver dataReceiver,UserManager userManager) {
+		this(new ActivePassiveSocketManager(new byte[] { 127, 0, 0, 1 }, 2121, 4242, 10),dataReceiver,userManager);
+	}
 	/*
 	 *  
 	 *  5.3.1.  FTP COMMANDS
@@ -99,10 +87,15 @@ public class DefaultCommandExecutionTemplate extends CommandExecutionTemplate {
 	public FTPCommand getFTPCommand(String cmd) {
 		return SUPPORTED_COMMAND_SET.get(cmd);
 	}
-	
 	public DefaultCommandExecutionTemplate(
 			final ActivePassiveSocketManager activePassiveSocketManager,
-			final DataReceiver dataReceiver) {
+			final DataReceiver dataReceiver)
+	{
+		this(activePassiveSocketManager,dataReceiver,UserManager.noAuthUserManager());
+	}
+	public DefaultCommandExecutionTemplate(
+			final ActivePassiveSocketManager activePassiveSocketManager,
+			final DataReceiver dataReceiver,final UserManager userManager) {
 		super();
 		this.activePassiveSocketManager = activePassiveSocketManager;
 		this.dataReceiver = dataReceiver;
@@ -129,7 +122,8 @@ public class DefaultCommandExecutionTemplate extends CommandExecutionTemplate {
 						register(new StorCmd(activePassiveSocketManager, dataReceiver));
 						register(new SystCmd());
 						register(new TypeCmd());
-						register(new UserCmd());
+						register(new UserCmd(userManager));
+						register(new PassCmd(userManager));
 					}
 
 					void register(FTPCommand cmd) {
